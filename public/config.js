@@ -12,8 +12,14 @@ export const firebaseConfig = {
 // Everyone in the exchange. `id` is stored with each post, so don't change
 // an id after people start posting (changing `name` is fine).
 export const participants = [
-  { id: "person-1", name: "Person 1" },
-  { id: "person-2", name: "Person 2" },
-  { id: "person-3", name: "Person 3" },
-  { id: "person-4", name: "Person 4" },
+  { id: "sophie", name: "Sophie" },
+  { id: "hadley", name: "Hadley" },
+  { id: "mandi", name: "Mandi" },
+  { id: "anisha", name: "Anisha" },
+  { id: "addie", name: "Addie" },
+  { id: "hollie", name: "Hollie" },
+  { id: "lucas", name: "Lucas" },
+  { id: "abigail", name: "Abigail" },
+  { id: "leyla", name: "Leyla" },
+  { id: "mira", name: "Mira" },
 ];
