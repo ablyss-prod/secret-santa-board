@@ -1,11 +1,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp,
+  getFirestore, collection, collectionGroup, addDoc, query, where, orderBy, onSnapshot, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { firebaseConfig, participants } from "./config.js";
 
 const db = getFirestore(initializeApp(firebaseConfig));
 const ME_KEY = "santa-board-me";
+const SEEN_KEY = "santa-board-seen";
 const $ = (id) => document.getElementById(id);
 
 function el(tag, props = {}, ...children) {
@@ -38,11 +39,67 @@ function timeAgo(ts) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+// ---- Unread counts ----------------------------------------------------
+// lastSeen[personId] = newest post/reply time (ms) seen on that board.
+let lastSeen = {};
+try { lastSeen = JSON.parse(localStorage.getItem(SEEN_KEY)) || {}; } catch {}
+const saveSeen = () => { try { localStorage.setItem(SEEN_KEY, JSON.stringify(lastSeen)); } catch {} };
+
+const postAbout = new Map(); // postId -> personId
+let postItems = [];          // [{ about, ms }]
+let replyItems = [];         // [{ postId, ms }]
+let currentId = null;
+let globalUnsubs = [];
+
+const msOf = (d) => d.createdAt?.toMillis() ?? 0; // pending writes count as seen
+
+function activity(personId) {
+  return [
+    ...postItems.filter((p) => p.about === personId).map((p) => p.ms),
+    ...replyItems.filter((r) => postAbout.get(r.postId) === personId).map((r) => r.ms),
+  ];
+}
+
+function updateBadges() {
+  if (currentId) {
+    const newest = Math.max(0, ...activity(currentId));
+    if (newest > (lastSeen[currentId] || 0)) { lastSeen[currentId] = newest; saveSeen(); }
+  }
+  for (const btn of $("people").children) {
+    const id = btn.dataset.id;
+    const n = id === currentId ? 0 : activity(id).filter((ms) => ms > (lastSeen[id] || 0)).length;
+    const badge = btn.querySelector(".badge");
+    badge.textContent = n > 99 ? "99+" : String(n);
+    badge.hidden = n === 0;
+    btn.setAttribute("aria-label", n ? `${btn.dataset.name}, ${n} new` : btn.dataset.name);
+  }
+}
+
+function watchActivity() {
+  globalUnsubs.forEach((u) => u());
+  globalUnsubs = [
+    onSnapshot(collection(db, "posts"), (snap) => {
+      postAbout.clear();
+      postItems = snap.docs.map((d) => {
+        postAbout.set(d.id, d.data().about);
+        return { about: d.data().about, ms: msOf(d.data()) };
+      });
+      updateBadges();
+    }, console.error),
+    onSnapshot(collectionGroup(db, "replies"), (snap) => {
+      replyItems = snap.docs.map((d) => ({ postId: d.ref.parent.parent.id, ms: msOf(d.data()) }));
+      updateBadges();
+    }, console.error),
+  ];
+}
+
 let unsubs = [];
 function clearSubs() { unsubs.forEach((u) => u()); unsubs = []; }
 
 function showPicker() {
   clearSubs();
+  globalUnsubs.forEach((u) => u()); globalUnsubs = [];
+  currentId = null;
   $("board").hidden = true;
   $("whoami").hidden = true;
   $("picker").hidden = false;
@@ -65,13 +122,17 @@ function start() {
   const nav = $("people");
   const select = (p) => {
     [...nav.children].forEach((b) => b.setAttribute("aria-current", String(b.dataset.id === p.id)));
+    currentId = p.id;
     showPerson(p);
+    updateBadges();
   };
   nav.replaceChildren(...others.map((p) => {
-    const b = el("button", { onclick: () => select(p) }, p.name);
+    const b = el("button", { onclick: () => select(p) }, p.name, el("span", { class: "badge", hidden: "" }));
     b.dataset.id = p.id;
+    b.dataset.name = p.name;
     return b;
   }));
+  watchActivity();
   if (others.length) select(others[0]);
 }
 

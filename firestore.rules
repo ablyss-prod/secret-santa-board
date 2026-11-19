@@ -1,6 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Lets the app count replies across all posts for the unread badges.
+    match /{path=**}/replies/{replyId} {
+      allow read: if true;
+    }
+
     // Anyone with the link can read and add posts. Nobody can edit or delete
     // (delete from the Firebase console if needed). No author is ever stored.
     match /posts/{postId} {
