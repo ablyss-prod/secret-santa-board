@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secret Santa Board</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>🎁 Secret Santa Board</h1>
+    <div id="whoami" class="whoami" hidden>
+      Signed in as <strong id="me-name"></strong>
+      <button id="switch" class="link">Not you?</button>
+    </div>
+  </header>
+
+  <main id="app">
+    <section id="picker" class="card" hidden>
+      <h2>Who are you?</h2>
+      <p class="muted">Your own board stays hidden from you. Pick your name. This device will remember it.</p>
+      <div id="picker-list" class="grid"></div>
+    </section>
+
+    <section id="board" hidden>
+      <nav id="people" class="people" aria-label="People"></nav>
+      <div id="person-view"></div>
+    </section>
+  </main>
+
+  <footer class="muted foot">Everything posted here is anonymous. Please don't peek at your own board.</footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
